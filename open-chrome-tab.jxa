@@ -3,41 +3,42 @@
 function run(argv) {
   var url = argv[0];
   var chrome = Application('Google Chrome');
+  var lastTab = findTabById(chrome, getLastTabId());
 
-  var tab;
+  var window, tab, tabIndex;
   // handle no chrome windows
   if(chrome.windows.length === 0) {
-    var newWindow = chrome.Window().make();
-    tab = newWindow.tabs[0];
-    tab.url.set(url);
-  } else {
-    var lastTab = findTabById(chrome, getLastTabId());
+    window = chrome.Window().make();
+    tab = window.tabs[0];
+    tabIndex = 1;
 
-    if(lastTab) {
-      lastTab.tab.url.set(url);
-      lastTab.window.activeTabIndex.set(lastTab.tabIndex)
-      return;
-    } else {
-      var window = chrome.windows[0];
-      tab = chrome.Tab({
-        url : url
-      });
-      window.tabs.push(tab);
-      window.activeTabIndex.set(window.tabs.length);
-    }
+  // tab still open from last time
+  } else if(lastTab) {
+    window = lastTab.window;
+    tab = lastTab.tab;
+    tabIndex = lastTab.tabIndex;
+
+  // create a new tab
+  } else {
+    window = chrome.windows[0];
+    window.tabs.push(tab = chrome.Tab());
+    tabIndex = window.tabs.length;
   }
 
+  tab.url.set(url);
+  window.activeTabIndex.set(tabIndex);
   rememberTab(tab);
 }
 
 function findTabById(chrome, tabId) {
-  if(!tabId) return;
+  if(!chrome || chrome.windows.length === 0 || !tabId) return;
 
   for(var windowIndex = 0; windowIndex < chrome.windows.length; windowIndex++) {
     var eachWindow = chrome.windows[windowIndex];
 
     for(var tabIndex = 0; tabIndex < eachWindow.tabs.length; tabIndex++) {
       var eachTab = eachWindow.tabs[tabIndex];
+
       if(eachTab.id() === tabId) {
         return {
           window : eachWindow,
@@ -50,6 +51,7 @@ function findTabById(chrome, tabId) {
 }
 
 var PLIST_PATH = '/tmp/open-chrome-tab.plist';
+
 function rememberTab(tab) {
   $.NSDictionary.dictionaryWithDictionary({ tabId : tab.id() })
     .writeToFileAtomically(PLIST_PATH, true);
