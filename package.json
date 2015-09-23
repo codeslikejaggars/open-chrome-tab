@@ -1,0 +1,7 @@
+{
+  "name" : "open-chrome-tab",
+  "version" : "0.1.0",
+  "main" : "main.js",
+  "os" : [ "darwin" ],
+  "license" : "ISC"
+}

@@ -1,0 +1,61 @@
+#!/usr/bin/env osascript -l JavaScript
+
+function run(argv) {
+  var url = argv[0];
+  var chrome = Application('Google Chrome');
+
+  var window, tab;
+  // handle no chrome windows
+  if(chrome.windows.length === 0) {
+    window = chrome.Window().make();
+    tab = window.tabs[0];
+  } else {
+    var lastTab = findTabById(chrome, getLastTabId());
+    if(lastTab) {
+      window = lastTab.window
+      tab = lastTab.tab;
+    }
+  }
+
+  window = window || chrome.windows[0];
+
+  if(tab) {
+    tab.url.set(url);
+  } else {
+    tab = chrome.Tab({
+      url : url
+    });
+    window.tabs.push(tab);
+  }
+
+  rememberTab(tab);
+}
+
+function findTabById(chrome, tabId) {
+  if(!tabId) return;
+
+  for(var windowIndex = 0; windowIndex < chrome.windows.length; windowIndex++) {
+    var eachWindow = chrome.windows[windowIndex];
+
+    for(var tabIndex = 0; tabIndex < eachWindow.tabs.length; tabIndex++) {
+      var eachTab = eachWindow.tabs[tabIndex];
+      if(eachTab.id() === tabId) {
+        return {
+          window : eachWindow,
+          tab : eachTab
+        };
+      }
+    }
+  }
+}
+
+var PLIST_PATH = '/tmp/open-chrome-tab.plist';
+function rememberTab(tab) {
+  $.NSDictionary.dictionaryWithDictionary({ tabId : tab.id() })
+    .writeToFileAtomically(PLIST_PATH, true);
+}
+
+function getLastTabId() {
+  var plist = $.NSDictionary.dictionaryWithContentsOfFile(PLIST_PATH);
+  return ObjC.unwrap(plist.valueForKey( 'tabId' ));
+}
