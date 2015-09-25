@@ -1,5 +1,10 @@
 #!/usr/bin/env osascript -l JavaScript
 
+// issues:
+// - URL handling (can't open a tab with a protocol-less url)
+ObjC.import('stdio');
+ObjC.import('stdlib');
+
 function run(argv) {
   var url = argv[0];
   var chrome = Application('Google Chrome');
@@ -28,6 +33,10 @@ function run(argv) {
   tab.url.set(url);
   window.activeTabIndex.set(tabIndex);
   rememberTab(tab);
+
+  // push window id and tab id to stdout
+  $.printf('%s:%s', window.id(), tab.id());
+  $.exit(0);
 }
 
 function findTabById(chrome, tabId) {
@@ -35,14 +44,14 @@ function findTabById(chrome, tabId) {
 
   for(var windowIndex = 0; windowIndex < chrome.windows.length; windowIndex++) {
     var eachWindow = chrome.windows[windowIndex];
-
     for(var tabIndex = 0; tabIndex < eachWindow.tabs.length; tabIndex++) {
       var eachTab = eachWindow.tabs[tabIndex];
 
       if(eachTab.id() === tabId) {
         return {
-          window : eachWindow,
-          tab : eachTab,
+          // NOTE: if get() isn't used here the values will change with the in focus window
+          window : eachWindow.get(),
+          tab : eachTab.get(),
           tabIndex : tabIndex + 1
         };
       }
